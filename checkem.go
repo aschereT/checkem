@@ -7,38 +7,70 @@ import (
 	"os"
 )
 
-//TODO: get home directory
-const root = "/home/aschere/dev/ops/apps/runner/"
+var root string
+var board string
+var schema [8]map[string]interface{}
 
-func ReadJSON(filepath string) map[string]interface{} {
+func readJSON(filepath string) (map[string]interface{}, error) {
 	file, err := ioutil.ReadFile(filepath)
 	if err != nil {
-		fmt.Println("ERROR: Can't open JSON file", filepath)
-		fmt.Println(err)
-		return nil
+		return nil, err
 	}
 	var res map[string]interface{}
 	err = json.Unmarshal([]byte(file), &res)
 	if err != nil {
-		fmt.Println("ERROR: Can't parse JSON file", filepath)
-		fmt.Println(err)
-		return nil
+		return nil, err
 	}
-	return res
+	return res, nil
 }
 
-func ReadSchema() [8]map[string]interface{} {
+//TODO: Parse schema
+func readSchema() ([8]map[string]interface{}, error) {
+	schemaFiles := [8]string{"agents_custom.json", "agents_standard.json", "offices_custom.json", "offices_standard.json", "openhouses_custom.json", "openhouses_standard.json", "properties_custom.json", "properties_standard.json"}
+
 	res := [8]map[string]interface{}{}
-	const schemaPref = root + "resources/es_mappings/es_"
-	res[0] = ReadJSON(schemaPref + "agents_custom.json")
-	res[1] = ReadJSON(schemaPref + "agents_standard.json")
-	res[2] = ReadJSON(schemaPref + "offices_custom.json")
-	res[3] = ReadJSON(schemaPref + "offices_standard.json")
-	res[4] = ReadJSON(schemaPref + "openhouses_custom.json")
-	res[5] = ReadJSON(schemaPref + "openhouses_standard.json")
-	res[6] = ReadJSON(schemaPref + "properties_custom.json")
-	res[7] = ReadJSON(schemaPref + "properties_standard.json")
-	return res
+	var err error
+	schemaPref := root + "resources/es_mappings/es_"
+	for i, name := range schemaFiles {
+		res[i], err = readJSON(schemaPref + name)
+		if err != nil {
+			return res, err
+		}
+	}
+	return res, nil
+}
+
+//gets FileInfo of all files under a directory
+func getFilesInDir(folder string) ([]string, error) {
+	dirEntries, err := ioutil.ReadDir(folder)
+	if err != nil {
+		return nil, err
+	}
+	res := []string{}
+	for _, file := range dirEntries {
+		if !file.IsDir() {
+			res = append(res, folder+file.Name())
+		}
+	}
+	return res, nil
+}
+
+func checkRoutine(jsonMap string) string {
+	//TODO: Read json mapping
+	file, err := readJSON(jsonMap)
+	if err != nil {
+		fmt.Println(err)
+		return "ERROR"
+	}
+	//TODO: Read csv metadata
+	//TODO: Check duplicate keys
+	//TODO: Check valid nesting
+	//TODO: Check keys missing or key not from metadata
+	//TODO: Use channels to run checks on all mappings concurrently
+	if file == nil {
+
+	}
+	return "nil"
 }
 
 func main() {
@@ -47,7 +79,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	board := os.Args[1]
+	//set current run variables
+	root = os.Getenv("HOME") + "/dev/ops/apps/runner/"
+	board = os.Args[1]
+
 	//check if environments/board.env exists
 	_, err := ioutil.ReadFile(root + "environment/" + board + ".env")
 	if err != nil {
@@ -62,24 +97,34 @@ func main() {
 	if err != nil {
 		fmt.Println("ERROR:", board+"_queries.json", "not found!")
 	}
-	//check if mappings/board exists
-	mappingsList, err := ioutil.ReadDir(root + "mappings/" + board + "/")
+
+	//load common data
+	//schema, acceptable data types
+	//TODO: Load schema
+	schema, err := readSchema()
+	if err != nil {
+		fmt.Println(err)
+	}
+	for i, schem := range schema {
+		if i == 0 {
+
+		}
+		if schem == nil {
+
+		}
+		//fmt.Println(i)
+		//fmt.Println(schem)
+	}
+
+	mappingsList, err := getFilesInDir(root + "mappings/" + board + "/")
 	if err != nil {
 		fmt.Println("ERROR: Unable to read mappings! Does the folder", board, "exists in mappings?")
 		fmt.Println(err)
 		os.Exit(1)
 	}
-
-	//load common data
-	//schema, acceptable data types
-	schema := ReadSchema()
-	for i, schem := range schema {
-		fmt.Println(i)
-		fmt.Println(schem)
-	}
-
 	for _, jsonMap := range mappingsList {
-		fmt.Println(jsonMap.Name())
+		fmt.Println(jsonMap)
+		checkRoutine(jsonMap)
 	}
 
 	return
