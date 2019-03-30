@@ -55,12 +55,14 @@ func getFilesInDir(folder string) ([]string, error) {
 	return res, nil
 }
 
-func checkRoutine(jsonMap string) string {
+func checkRoutine(jsonMap string, fin chan bool, log chan string) {
 	//TODO: Read json mapping
+	defer close(log)
 	file, err := readJSON(jsonMap)
 	if err != nil {
 		fmt.Println(err)
-		return "ERROR"
+		fin <- false
+		log <- "FAIL"
 	}
 	//TODO: Read csv metadata
 	//TODO: Check duplicate keys
@@ -70,7 +72,8 @@ func checkRoutine(jsonMap string) string {
 	if file == nil {
 
 	}
-	return "nil"
+	fin <- true
+	log <- "SUCC"
 }
 
 func main() {
@@ -122,10 +125,19 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	for _, jsonMap := range mappingsList {
+	finChan := make(chan bool)
+	logChans := make([]chan string, len(mappingsList))
+	//spin off analysis of each mapping in their own goroutine
+	for i, jsonMap := range mappingsList {
 		fmt.Println(jsonMap)
-		checkRoutine(jsonMap)
+		logChans[i] = make(chan string)
+		go checkRoutine(jsonMap, finChan, logChans[i])
 	}
-
-	return
+	//wait for all to finish
+	for range mappingsList {
+		select {
+		case test := <-finChan:
+			fmt.Println(test)
+		}
+	}
 }
