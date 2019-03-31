@@ -9,14 +9,14 @@ import (
 
 type empty struct{}
 
-//SchemaStandard is the standard schema's struct, discarding uneeded fields
-type SchemaStandard struct {
+//schemaStandard is the standard schema's struct, discarding uneeded fields
+type schemaStandard struct {
 	//Settings       interface{}                       `json:"settings"`
 	SchemaMappings map[string]map[string]interface{} `json:"mappings"`
 }
 
-//SchemaCustom is the custom schema's struct. Simple.
-type SchemaCustom struct {
+//schemaCustom is the custom schema's struct. Simple.
+type schemaCustom struct {
 	SchemaMappings map[string]interface{} `json:"properties"`
 }
 
@@ -45,7 +45,7 @@ func readSchemaStandard(filepath string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	var res SchemaStandard
+	var res schemaStandard
 	err = json.Unmarshal([]byte(file), &res)
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func readSchemaCustom(filepath string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	var res SchemaCustom
+	var res schemaCustom
 	err = json.Unmarshal([]byte(file), &res)
 	if err != nil {
 		return nil, err
@@ -67,7 +67,6 @@ func readSchemaCustom(filepath string) (map[string]interface{}, error) {
 	return res.SchemaMappings, nil
 }
 
-//TODO: Parse schema
 func readSchemas() error {
 	//TODO: Just use the resource name
 	standardFiles := [4]string{"agents_standard.json", "offices_standard.json", "openhouses_standard.json", "properties_standard.json"}
@@ -143,22 +142,45 @@ func getFilesInDir(folder string) ([]string, error) {
 func checkRoutine(jsonMap string, fin chan bool, log chan string) {
 	//TODO: Read json mapping
 	defer close(log)
-	file, err := readJSON(jsonMap)
+	mapping, err := readJSON(jsonMap)
 	if err != nil {
 		fmt.Println(err)
 		fin <- false
-		log <- "FAIL"
+		//log <- "FAIL"
 		return
 	}
+	mappedFieldvals := map[string]string{}
 	//TODO: Read csv metadata
+	if mapping != nil {
+		for key := range mapping {
+			switch mapping[key].(type) {
+			case string:
+				//fmt.Println("Key", key, "|Value", mapping[key])
+				mappedVal := mapping[key].(string)
+				if mappedVal == "" {
+					//ignore empty fields
+					continue
+				}
+				//Check if another field is already mapped to the same thing
+				other, ex := mappedFieldvals[mappedVal]
+				if ex {
+					fmt.Println(jsonMap, key, "is mapped to the same field as", other, "("+mappedVal+")")
+				} else {
+					mappedFieldvals[mappedVal] = key
+				}
+			case interface{}:
+				//fmt.Println("Key", key, "|Nesting ", mapping[key])
+			default:
+				//fmt.Println("Key", key, "|Unknown [Something else]")
+			}
+		}
+	}
 	//TODO: Check duplicate keys
 	//TODO: Check valid nesting
 	//TODO: Check keys missing or key not from metadata
 	//TODO: Use channels to run checks on all mappings concurrently
-	if file == nil {
-
-	}
 	fin <- true
+	return
 	log <- "SUCC"
 }
 
