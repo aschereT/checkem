@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
 type empty struct{}
@@ -22,8 +23,8 @@ type schemaCustom struct {
 
 var root string
 var board string
-var standardSchemas [4]map[string]empty
-var customSchemas [4]map[string]bool
+var standardSchemas map[string]map[string]empty
+var customSchemas map[string]map[string]bool
 
 //used for checkRoutines
 func readJSON(filepath string) (map[string]interface{}, error) {
@@ -69,15 +70,17 @@ func readSchemaCustom(filepath string) (map[string]interface{}, error) {
 
 func readSchemas() error {
 	//TODO: Just use the resource name
-	standardFiles := [4]string{"agents_standard.json", "offices_standard.json", "openhouses_standard.json", "properties_standard.json"}
-	customFiles := [4]string{"agents_custom.json", "offices_custom.json", "openhouses_custom.json", "properties_custom.json"}
+	resources := map[string]string{"agents": "agent", "offices": "office", "openhouses": "openhouse", "properties": "property"}
 	schemaPref := root + "resources/es_mappings/es_"
+
+	standardSchemas = map[string]map[string]empty{}
+	customSchemas = map[string]map[string]bool{}
 
 	fin := make(chan error, 2)
 	//process standard schema
 	go func() {
-		for i, filename := range standardFiles {
-			propertiesMap, err := readSchemaStandard(schemaPref + filename)
+		for resourceType := range resources {
+			propertiesMap, err := readSchemaStandard(schemaPref + resourceType + "_standard.json")
 			curSchem := map[string]empty{}
 			if err != nil {
 				fin <- err
@@ -86,29 +89,23 @@ func readSchemas() error {
 			for k := range propertiesMap {
 				curSchem[k] = empty{}
 			}
-			standardSchemas[i] = curSchem
+			standardSchemas[resources[resourceType]] = curSchem
 		}
 		fin <- nil
 	}()
 
 	go func() {
-		for i, filename := range customFiles {
-			propertiesMap, err := readSchemaCustom(schemaPref + filename)
+		for resourceType := range resources {
+			propertiesMap, err := readSchemaCustom(schemaPref + resourceType + "_custom.json")
 			curSchem := map[string]bool{}
 			if err != nil {
 				fin <- err
 				return
 			}
 			for k := range propertiesMap {
-				//TODO: Set true if nesting, and false otherwise
-				if propertiesMap[k].(map[string]interface{})["type"] == "nested" {
-					curSchem[k] = true
-				} else {
-					curSchem[k] = false
-				}
-				//_, ex := propertiesMap[k]["type"]
+				curSchem[k] = propertiesMap[k].(map[string]interface{})["type"] == "nested"
 			}
-			customSchemas[i] = curSchem
+			customSchemas[resources[resourceType]] = curSchem
 		}
 		fin <- nil
 	}()
@@ -139,6 +136,13 @@ func getFilesInDir(folder string) ([]string, error) {
 	return res, nil
 }
 
+//given a mapping json filename, returns resource and class
+//TODO: make it less hacky?
+func filenameChunker(filename string) (string, string) {
+	res := strings.Split(filename, "_")
+	return res[1], strings.Join(res[2:], "_")
+}
+
 func checkRoutine(jsonMap string, fin chan bool, log chan string) {
 	//TODO: Read json mapping
 	defer close(log)
@@ -149,7 +153,10 @@ func checkRoutine(jsonMap string, fin chan bool, log chan string) {
 		//log <- "FAIL"
 		return
 	}
+
+	//stores all non-nested values we have encountered so far
 	mappedFieldvals := map[string]string{}
+	resource, _ := filenameChunker(jsonMap)
 	//TODO: Read csv metadata
 	if mapping != nil {
 		for key := range mapping {
@@ -168,6 +175,15 @@ func checkRoutine(jsonMap string, fin chan bool, log chan string) {
 				} else {
 					mappedFieldvals[mappedVal] = key
 				}
+				//Check if in custom schema. We do custom first because custom schema is smaller
+				aNest, ex := customSchemas[resource][mappedVal]
+				if !ex || aNest {
+					//check if in standard schema
+					_, ex := standardSchemas[resource][mappedVal]
+					if !ex {
+						fmt.Println(jsonMap, key, "is mapped to an invalid value", mappedVal)
+					}
+				}
 			case interface{}:
 				//fmt.Println("Key", key, "|Nesting ", mapping[key])
 			default:
@@ -178,9 +194,9 @@ func checkRoutine(jsonMap string, fin chan bool, log chan string) {
 	//TODO: Check duplicate keys
 	//TODO: Check valid nesting
 	//TODO: Check keys missing or key not from metadata
-	//TODO: Use channels to run checks on all mappings concurrently
 	fin <- true
 	return
+	//TODO: Proper logging
 	log <- "SUCC"
 }
 
@@ -211,7 +227,7 @@ func main() {
 
 	//load common data
 	//schema, acceptable data types
-	//TODO: Load schema
+	//TODO: Load acceptable data types
 	err = readSchemas()
 	if err != nil {
 		fmt.Println(err)
