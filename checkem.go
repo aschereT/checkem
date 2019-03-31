@@ -15,6 +15,7 @@ type SchemaStandard struct {
 	SchemaMappings map[string]map[string]interface{} `json:"mappings"`
 }
 
+//SchemaCustom is the custom schema's struct. Simple.
 type SchemaCustom struct {
 	SchemaMappings map[string]interface{} `json:"properties"`
 }
@@ -49,8 +50,6 @@ func readSchemaStandard(filepath string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	// fmt.Println("Filepath", filepath)
-	// fmt.Println(res.SchemaMappings["_doc"]["properties"])
 	return res.SchemaMappings["_doc"]["properties"].(map[string]interface{}), nil
 }
 
@@ -65,20 +64,19 @@ func readSchemaCustom(filepath string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	// fmt.Println("Filepath", filepath)
-	fmt.Println(res.SchemaMappings)
 	return res.SchemaMappings, nil
 }
 
 //TODO: Parse schema
 func readSchemas() error {
+	//TODO: Just use the resource name
 	standardFiles := [4]string{"agents_standard.json", "offices_standard.json", "openhouses_standard.json", "properties_standard.json"}
 	customFiles := [4]string{"agents_custom.json", "offices_custom.json", "openhouses_custom.json", "properties_custom.json"}
 	schemaPref := root + "resources/es_mappings/es_"
 
 	fin := make(chan error, 2)
 	//process standard schema
-	go func(fin chan error, standardFiles [4]string) {
+	go func() {
 		for i, filename := range standardFiles {
 			propertiesMap, err := readSchemaStandard(schemaPref + filename)
 			curSchem := map[string]empty{}
@@ -86,20 +84,35 @@ func readSchemas() error {
 				fin <- err
 				return
 			}
-			fmt.Println(len(propertiesMap))
 			for k := range propertiesMap {
 				curSchem[k] = empty{}
 			}
 			standardSchemas[i] = curSchem
-			fmt.Println(i, filename)
 		}
 		fin <- nil
-	}(fin, standardFiles)
+	}()
 
-	go func(fin chan error, customFiles [4]string) {
-
+	go func() {
+		for i, filename := range customFiles {
+			propertiesMap, err := readSchemaCustom(schemaPref + filename)
+			curSchem := map[string]bool{}
+			if err != nil {
+				fin <- err
+				return
+			}
+			for k := range propertiesMap {
+				//TODO: Set true if nesting, and false otherwise
+				if propertiesMap[k].(map[string]interface{})["type"] == "nested" {
+					curSchem[k] = true
+				} else {
+					curSchem[k] = false
+				}
+				//_, ex := propertiesMap[k]["type"]
+			}
+			customSchemas[i] = curSchem
+		}
 		fin <- nil
-	}(fin, customFiles)
+	}()
 
 	for i := 0; i < 2; i++ {
 		select {
