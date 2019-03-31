@@ -15,11 +15,9 @@ type SchemaStandard struct {
 	SchemaMappings map[string]map[string]interface{} `json:"mappings"`
 }
 
-// type schemaFieldlings struct {
-// 	fieldType string `json:"type"`
-// 	fieldfield interface{} `json:"fields"`
-// 	//fieldProperties map[string]
-// }
+type SchemaCustom struct {
+	SchemaMappings map[string]interface{} `json:"properties"`
+}
 
 var root string
 var board string
@@ -40,8 +38,8 @@ func readJSON(filepath string) (map[string]interface{}, error) {
 	return res, nil
 }
 
-//like readJSON, but returns a specific struct
-func readSchema(filepath string) (map[string]interface{}, error) {
+//like readJSON, but reads standard schema JSON only
+func readSchemaStandard(filepath string) (map[string]interface{}, error) {
 	file, err := ioutil.ReadFile(filepath)
 	if err != nil {
 		return nil, err
@@ -56,21 +54,36 @@ func readSchema(filepath string) (map[string]interface{}, error) {
 	return res.SchemaMappings["_doc"]["properties"].(map[string]interface{}), nil
 }
 
+//like readJSON, but reads standard schema JSON only
+func readSchemaCustom(filepath string) (map[string]interface{}, error) {
+	file, err := ioutil.ReadFile(filepath)
+	if err != nil {
+		return nil, err
+	}
+	var res SchemaCustom
+	err = json.Unmarshal([]byte(file), &res)
+	if err != nil {
+		return nil, err
+	}
+	// fmt.Println("Filepath", filepath)
+	fmt.Println(res.SchemaMappings)
+	return res.SchemaMappings, nil
+}
+
 //TODO: Parse schema
 func readSchemas() error {
 	standardFiles := [4]string{"agents_standard.json", "offices_standard.json", "openhouses_standard.json", "properties_standard.json"}
-	//customFiles := [4]string{"agents_custom.json", "offices_custom.json", "openhouses_custom.json", "properties_custom.json"}
+	customFiles := [4]string{"agents_custom.json", "offices_custom.json", "openhouses_custom.json", "properties_custom.json"}
 	schemaPref := root + "resources/es_mappings/es_"
 
-	fin := make(chan bool, 2)
+	fin := make(chan error, 2)
 	//process standard schema
-	go func(fin chan bool, standardFiles [4]string) {
+	go func(fin chan error, standardFiles [4]string) {
 		for i, filename := range standardFiles {
-			propertiesMap, err := readSchema(schemaPref + filename)
+			propertiesMap, err := readSchemaStandard(schemaPref + filename)
 			curSchem := map[string]empty{}
 			if err != nil {
-				fin <- false
-				fmt.Println(err)
+				fin <- err
 				return
 			}
 			fmt.Println(len(propertiesMap))
@@ -78,14 +91,24 @@ func readSchemas() error {
 				curSchem[k] = empty{}
 			}
 			standardSchemas[i] = curSchem
+			fmt.Println(i, filename)
 		}
-		fmt.Println("Standard schema: ")
-		fmt.Println(standardSchemas)
+		fin <- nil
 	}(fin, standardFiles)
 
-	go func(fin chan bool, customFiles [4]string) {
+	go func(fin chan error, customFiles [4]string) {
 
-	}(fin, standardFiles)
+		fin <- nil
+	}(fin, customFiles)
+
+	for i := 0; i < 2; i++ {
+		select {
+		case err := <-fin:
+			if err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 
