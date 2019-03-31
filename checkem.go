@@ -133,7 +133,7 @@ func getFilesInDir(folder string) ([]string, error) {
 	res := []string{}
 	for _, file := range dirEntries {
 		if !file.IsDir() {
-			res = append(res, folder+file.Name())
+			res = append(res, file.Name())
 		}
 	}
 	return res, nil
@@ -142,7 +142,7 @@ func getFilesInDir(folder string) ([]string, error) {
 func checkRoutine(jsonMap string, fin chan bool, log chan string) {
 	//TODO: Read json mapping
 	defer close(log)
-	mapping, err := readJSON(jsonMap)
+	mapping, err := readJSON(root + "mappings/" + board + "/" + jsonMap)
 	if err != nil {
 		fmt.Println(err)
 		fin <- false
