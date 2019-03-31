@@ -171,6 +171,7 @@ func checkRoutine(jsonMap string, fin chan bool, log chan string) {
 				//Check if another field is already mapped to the same thing
 				other, ex := mappedFieldvals[mappedVal]
 				if ex {
+					//fmt.Printf("%54s | %s\n", jsonMap, key+" is mapped to the same field as "+other+"("+mappedVal+")")
 					fmt.Println(jsonMap, key, "is mapped to the same field as", other, "("+mappedVal+")")
 				} else {
 					mappedFieldvals[mappedVal] = key
