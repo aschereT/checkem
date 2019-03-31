@@ -7,10 +7,26 @@ import (
 	"os"
 )
 
+type empty struct{}
+
+//SchemaStandard is the standard schema's struct, discarding uneeded fields
+type SchemaStandard struct {
+	//Settings       interface{}                       `json:"settings"`
+	SchemaMappings map[string]map[string]interface{} `json:"mappings"`
+}
+
+// type schemaFieldlings struct {
+// 	fieldType string `json:"type"`
+// 	fieldfield interface{} `json:"fields"`
+// 	//fieldProperties map[string]
+// }
+
 var root string
 var board string
-var schema [8]map[string]interface{}
+var standardSchemas [4]map[string]empty
+var customSchemas [4]map[string]bool
 
+//used for checkRoutines
 func readJSON(filepath string) (map[string]interface{}, error) {
 	file, err := ioutil.ReadFile(filepath)
 	if err != nil {
@@ -24,20 +40,53 @@ func readJSON(filepath string) (map[string]interface{}, error) {
 	return res, nil
 }
 
-//TODO: Parse schema
-func readSchema() ([8]map[string]interface{}, error) {
-	schemaFiles := [8]string{"agents_custom.json", "agents_standard.json", "offices_custom.json", "offices_standard.json", "openhouses_custom.json", "openhouses_standard.json", "properties_custom.json", "properties_standard.json"}
-
-	res := [8]map[string]interface{}{}
-	var err error
-	schemaPref := root + "resources/es_mappings/es_"
-	for i, name := range schemaFiles {
-		res[i], err = readJSON(schemaPref + name)
-		if err != nil {
-			return res, err
-		}
+//like readJSON, but returns a specific struct
+func readSchema(filepath string) (map[string]interface{}, error) {
+	file, err := ioutil.ReadFile(filepath)
+	if err != nil {
+		return nil, err
 	}
-	return res, nil
+	var res SchemaStandard
+	err = json.Unmarshal([]byte(file), &res)
+	if err != nil {
+		return nil, err
+	}
+	// fmt.Println("Filepath", filepath)
+	// fmt.Println(res.SchemaMappings["_doc"]["properties"])
+	return res.SchemaMappings["_doc"]["properties"].(map[string]interface{}), nil
+}
+
+//TODO: Parse schema
+func readSchemas() error {
+	standardFiles := [4]string{"agents_standard.json", "offices_standard.json", "openhouses_standard.json", "properties_standard.json"}
+	//customFiles := [4]string{"agents_custom.json", "offices_custom.json", "openhouses_custom.json", "properties_custom.json"}
+	schemaPref := root + "resources/es_mappings/es_"
+
+	fin := make(chan bool, 2)
+	//process standard schema
+	go func(fin chan bool, standardFiles [4]string) {
+		for i, filename := range standardFiles {
+			propertiesMap, err := readSchema(schemaPref + filename)
+			curSchem := map[string]empty{}
+			if err != nil {
+				fin <- false
+				fmt.Println(err)
+				return
+			}
+			fmt.Println(len(propertiesMap))
+			for k := range propertiesMap {
+				curSchem[k] = empty{}
+			}
+			standardSchemas[i] = curSchem
+		}
+		fmt.Println("Standard schema: ")
+		fmt.Println(standardSchemas)
+	}(fin, standardFiles)
+
+	go func(fin chan bool, customFiles [4]string) {
+
+	}(fin, standardFiles)
+	return nil
 }
 
 //gets FileInfo of all files under a directory
@@ -63,6 +112,7 @@ func checkRoutine(jsonMap string, fin chan bool, log chan string) {
 		fmt.Println(err)
 		fin <- false
 		log <- "FAIL"
+		return
 	}
 	//TODO: Read csv metadata
 	//TODO: Check duplicate keys
@@ -104,19 +154,10 @@ func main() {
 	//load common data
 	//schema, acceptable data types
 	//TODO: Load schema
-	schema, err := readSchema()
+	err = readSchemas()
 	if err != nil {
 		fmt.Println(err)
-	}
-	for i, schem := range schema {
-		if i == 0 {
-
-		}
-		if schem == nil {
-
-		}
-		//fmt.Println(i)
-		//fmt.Println(schem)
+		os.Exit(1)
 	}
 
 	mappingsList, err := getFilesInDir(root + "mappings/" + board + "/")
@@ -125,19 +166,18 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	finChan := make(chan bool)
+	finChan := make(chan bool, len(mappingsList))
 	logChans := make([]chan string, len(mappingsList))
 	//spin off analysis of each mapping in their own goroutine
 	for i, jsonMap := range mappingsList {
-		fmt.Println(jsonMap)
 		logChans[i] = make(chan string)
 		go checkRoutine(jsonMap, finChan, logChans[i])
 	}
 	//wait for all to finish
 	for range mappingsList {
 		select {
-		case test := <-finChan:
-			fmt.Println(test)
+		case <-finChan:
 		}
 	}
+	//TODO: Print off logs in a deterministic manner
 }
