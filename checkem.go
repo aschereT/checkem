@@ -178,11 +178,13 @@ func checkRoutine(jsonMap string, fin chan bool, log chan string) {
 				}
 				//Check if in custom schema. We do custom first because custom schema is smaller
 				aNest, ex := customSchemas[resource][mappedVal]
-				if !ex || aNest {
+				if aNest {
+					fmt.Println(jsonMap, key, "is supposed to be a nest but was mapped to", mappedVal)
+				} else if !ex {
 					//check if in standard schema
 					_, ex := standardSchemas[resource][mappedVal]
 					if !ex {
-						fmt.Println(jsonMap, key, "is mapped to an invalid value", mappedVal)
+						fmt.Println(jsonMap, key, "is not in standard nor custom schema", mappedVal)
 					}
 				}
 			case interface{}:
@@ -223,7 +225,7 @@ func main() {
 	}
 	_, err = ioutil.ReadFile(root + "queries/" + board + "/test_" + board + "_queries.json")
 	if err != nil {
-		fmt.Println("ERROR:", board+"_queries.json", "not found!")
+		fmt.Println("ERROR:", "test_"+board+"_queries.json", "not found!")
 	}
 
 	//load common data
