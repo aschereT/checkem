@@ -156,9 +156,10 @@ func filenameChunker(filename string) (string, string) {
 }
 
 func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
+	fmt.Fprintln(log, jsonMap)
 	mapping, err := readJSON(root + "mappings/" + board + "/" + jsonMap)
 	if err != nil {
-		log.WriteString(err.Error())
+		fmt.Fprintln(log, err)
 		fin <- false
 		return
 	}
@@ -179,7 +180,7 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 				//Check if another field is already mapped to the same thing
 				other, ex := mappedFieldvals[mappedVal]
 				if ex {
-					fmt.Fprintln(log, jsonMap, key+":", "repeated value", mappedVal, "with", other)
+					fmt.Fprintln(log, "	", key+":", "repeated value", mappedVal, "with", other)
 				} else {
 					mappedFieldvals[mappedVal] = key
 				}
@@ -189,10 +190,10 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 					//check if in standard schema
 					_, ex := standardSchemas[resource][mappedVal]
 					if !ex {
-						fmt.Fprintln(log, jsonMap, key+":", mappedVal, "is not in", resource+"'s", "standard nor custom schema")
+						fmt.Fprintln(log, "	", key+":", mappedVal, "is not in", resource+"'s", "standard nor custom schema")
 					}
 				} else if aNest.nested {
-					fmt.Fprintln(log, jsonMap, key+":", "is supposed to be a nest but was mapped to", mappedVal)
+					fmt.Fprintln(log, "	", key+":", "is supposed to be a nest but was mapped to", mappedVal)
 				}
 			case interface{}:
 				//Nested
@@ -204,7 +205,7 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 				nestType := false
 				aNest, ex := customSchemas[resource][nestSchem]
 				if !ex || !aNest.nested {
-					fmt.Fprintln(log, jsonMap, key+":", "Nesting", key, "has an invalid nesting", nestSchem)
+					fmt.Fprintln(log, "	", key+":", "Nesting", key, "has an invalid nesting", nestSchem)
 				}
 				for mapField := range nesting {
 					switch mapField {
@@ -218,25 +219,27 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 						}
 						_, ex = customSchemas[resource][nestSchem].properties[nesting[mapField].(string)]
 						if !ex {
-							fmt.Fprintln(log, jsonMap, key+":", "Nested property", mapField, "has an invalid nesting", nesting[mapField].(string))
+							fmt.Fprintln(log, "	", key+":", "Nested property", mapField, "has an invalid nesting", nesting[mapField].(string))
 						}
 						//TODO: use ADT here
 						//fmt.Println(mapping[key])
 					}
 				}
 				if !nestName {
-					fmt.Fprintln(log, jsonMap, key+":", "Missing Name inside nesting")
+					fmt.Fprintln(log, "	", key+":", "Missing Name inside nesting")
 				}
 				if !nestType {
-					fmt.Fprintln(log, jsonMap, key+":", "Missing Type inside nesting")
+					fmt.Fprintln(log, "	", key+":", "Missing Type inside nesting")
 				}
 				if !nestKeyinside {
-					fmt.Fprintln(log, jsonMap, key+":", "Missing itself inside nesting")
+					fmt.Fprintln(log, "	", key+":", "Missing itself inside nesting")
 				}
 			default:
-				fmt.Fprintln(log, jsonMap, key+":", "Unknown mapping")
+				fmt.Fprintln(log, "	", key+":", "Unknown mapping")
 			}
 		}
+	} else {
+		fmt.Fprintln(log, "Mapping is nil!")
 	}
 	//TODO: Check duplicate keys
 	//TODO: Check valid nesting
