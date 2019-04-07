@@ -188,6 +188,36 @@ func checkRoutine(jsonMap string, fin chan bool, log chan string) {
 					}
 				}
 			case interface{}:
+				//Nested
+				assertedNest := mapping[key].([]interface{})
+				nestSchem := assertedNest[0].(string)
+				nesting := assertedNest[1].(map[string]interface{})
+				nestKeyinside := false
+				nestName := false
+				nestType := false
+				for mapField := range nesting {
+					switch mapField {
+					case "Name":
+						nestName = true
+					case "Type":
+						nestType = true
+					case key:
+						nestKeyinside = true
+					default:
+						//TODO: use ADT here
+						//fmt.Println(mapping[key])
+					}
+				}
+				if !nestName {
+					fmt.Println(jsonMap, key+":", "Nesting is missing Name field")
+				}
+				if !nestType {
+					fmt.Println(jsonMap, key+":", "Nesting is missing Type field")
+				}
+				if !nestKeyinside {
+					fmt.Println(jsonMap, key+":", "Nesting is missing", key, "field")
+					fmt.Println(jsonMap, key+":", "Nesting is missing Type field", nestSchem)
+				}
 				//fmt.Println("Key", key, "|Nesting ", mapping[key])
 			default:
 				//fmt.Println("Key", key, "|Unknown [Something else]")
