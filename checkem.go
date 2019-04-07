@@ -185,23 +185,27 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 				}
 				//Check if in custom schema. We do custom first because custom schema is smaller
 				aNest, ex := customSchemas[resource][mappedVal]
-				if aNest.nested {
-					fmt.Fprintln(log, jsonMap, key+":", "is supposed to be a nest but was mapped to", mappedVal)
-				} else if !ex {
+				if !ex {
 					//check if in standard schema
 					_, ex := standardSchemas[resource][mappedVal]
 					if !ex {
 						fmt.Fprintln(log, jsonMap, key+":", mappedVal, "is not in", resource+"'s", "standard nor custom schema")
 					}
+				} else if aNest.nested {
+					fmt.Fprintln(log, jsonMap, key+":", "is supposed to be a nest but was mapped to", mappedVal)
 				}
 			case interface{}:
 				//Nested
 				assertedNest := mapping[key].([]interface{})
-				//nestSchem := assertedNest[0].(string)
+				nestSchem := assertedNest[0].(string)
 				nesting := assertedNest[1].(map[string]interface{})
 				nestKeyinside := false
 				nestName := false
 				nestType := false
+				aNest, ex := customSchemas[resource][nestSchem]
+				if !ex || !aNest.nested {
+					fmt.Fprintln(log, jsonMap, key+":", "Nesting", key, "has an invalid nesting", nestSchem)
+				}
 				for mapField := range nesting {
 					switch mapField {
 					case "Name":
@@ -211,6 +215,10 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 					default:
 						if mapField == key {
 							nestKeyinside = true
+						}
+						_, ex = customSchemas[resource][nestSchem].properties[nesting[mapField].(string)]
+						if !ex {
+							fmt.Fprintln(log, jsonMap, key+":", "Nested property", mapField, "has an invalid nesting", nesting[mapField].(string))
 						}
 						//TODO: use ADT here
 						//fmt.Println(mapping[key])
@@ -223,9 +231,8 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 					fmt.Fprintln(log, jsonMap, key+":", "Missing Type inside nesting")
 				}
 				if !nestKeyinside {
-					fmt.Fprintln(log, jsonMap, key+":", "Missing key inside nesting")
+					fmt.Fprintln(log, jsonMap, key+":", "Missing itself inside nesting")
 				}
-				//fmt.Println("Key", key, "|Nesting ", mapping[key])
 			default:
 				fmt.Fprintln(log, jsonMap, key+":", "Unknown mapping")
 			}
