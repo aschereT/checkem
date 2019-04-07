@@ -1,76 +1,46 @@
 {
-    "PropertyDetails": [
-        "Date",
-        "Description",
-        "Quantity",
-        "Level",
-        "Price",
-        "Dimensions",
-        "Boolean",
-        "Address",
-        "Area",
-        "Value"
+    "DocumentOnFile": [
+        "DocumentNumber"
     ],
     "ExtendedAgentAndOffice": [
+        "Boolean",
         "Date",
         "Description",
-        "Boolean",
         "MUI",
-        "Value",
-        "PhoneNumber"
-    ],
-    "InformationAndTerms": [
-        "Date",
-        "Description",
-        "TimePeriod",
-        "Boolean",
-        "Quantity",
+        "PhoneNumber",
         "Value"
     ],
     "Finance": [
-        "Date",
-        "Description",
-        "Price",
-        "PerArea",
-        "Value",
-        "Boolean",
-        "Area"
-    ],
-    "Rooms": [
-        "Date",
-        "Description",
-        "Quantity",
-        "Level",
-        "Price",
-        "Dimensions",
-        "Boolean",
-        "Address",
         "Area",
+        "Boolean",
+        "Date",
+        "Description",
+        "PerArea",
+        "Price",
         "Value"
-    ],
-    "VOWPermissions": [
-        "Boolean"
     ],
     "GreenBuildingVerificationType": [
         "Certifications",
         "Description",
         "Value"
     ],
-    "SocialMedia": [
-        "Website"
-    ],
-    "DocumentOnFile": [
-        "DocumentNumber"
-    ],
     "GreenBuildingVerificationTypeCustom": [
+        "Boolean",
         "Certifications",
-        "Value",
         "Description",
-        "Boolean"
+        "Value"
     ],
     "GreenEnergyGeneration": [
         "Certifications",
         "Description",
+        "Value"
+    ],
+    "InformationAndTerms": [
+        "Boolean",
+        "Date",
+        "Description",
+        "Quantity",
+        "TimePeriod",
         "Value"
     ],
     "PowerProductionTypeCustom": [
@@ -78,8 +48,38 @@
         "Description",
         "Value"
     ],
+    "PropertyDetails": [
+        "Address",
+        "Area",
+        "Boolean",
+        "Date",
+        "Description",
+        "Dimensions",
+        "Level",
+        "Price",
+        "Quantity",
+        "Value"
+    ],
+    "Rooms": [
+        "Address",
+        "Area",
+        "Boolean",
+        "Date",
+        "Description",
+        "Dimensions",
+        "Level",
+        "Price",
+        "Quantity",
+        "Value"
+    ],
+    "SocialMedia": [
+        "Website"
+    ],
     "StormProtection": [
-        "Features",
-        "Description"
+        "Description",
+        "Features"
+    ],
+    "VOWPermissions": [
+        "Boolean"
     ]
 }
