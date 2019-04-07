@@ -21,3 +21,9 @@ Compare time to checkem.sh:
 ```
 time ~/dev/ops/apps/runner/maptests/checkem.sh gjara && time ./checkem gjara
 ```
+
+Check *ALL* the mappings:
+
+```
+ls ~/dev/ops/apps/runner/mappings | xargs -n1 ./checkem
+```
