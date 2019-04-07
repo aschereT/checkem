@@ -21,10 +21,16 @@ type schemaCustom struct {
 	SchemaMappings map[string]interface{} `json:"properties"`
 }
 
+//schemaNest is the struct of choice for customs. If nested = true, fields should be mapped to one of the properties
+type schemaNest struct {
+	nested     bool
+	properties map[string]empty
+}
+
 var root string
 var board string
 var standardSchemas map[string]map[string]empty
-var customSchemas map[string]map[string]bool
+var customSchemas map[string]map[string]schemaNest
 
 //used for checkRoutines
 func readJSON(filepath string) (map[string]interface{}, error) {
@@ -74,7 +80,7 @@ func readSchemas() error {
 	schemaPref := root + "resources/es_mappings/es_"
 
 	standardSchemas = map[string]map[string]empty{}
-	customSchemas = map[string]map[string]bool{}
+	customSchemas = map[string]map[string]schemaNest{}
 
 	fin := make(chan error, 2)
 	//process standard schema
@@ -97,13 +103,19 @@ func readSchemas() error {
 	go func() {
 		for resourceType := range resources {
 			propertiesMap, err := readSchemaCustom(schemaPref + resourceType + "_custom.json")
-			curSchem := map[string]bool{}
+			curSchem := map[string]schemaNest{}
 			if err != nil {
 				fin <- err
 				return
 			}
 			for k := range propertiesMap {
-				curSchem[k] = propertiesMap[k].(map[string]interface{})["type"] == "nested"
+				curNesting := schemaNest{nested: propertiesMap[k].(map[string]interface{})["type"] == "nested"}
+				if curNesting.nested {
+					for p := range propertiesMap[k].(map[string]interface{})["properties"].(map[string]interface{}) {
+						curNesting.properties[p] = empty{}
+					}
+				}
+				curSchem[k] = curNesting
 			}
 			customSchemas[resources[resourceType]] = curSchem
 		}
@@ -144,7 +156,6 @@ func filenameChunker(filename string) (string, string) {
 }
 
 func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
-	//TODO: Read json mapping
 	mapping, err := readJSON(root + "mappings/" + board + "/" + jsonMap)
 	if err != nil {
 		log.WriteString(err.Error())
@@ -168,14 +179,13 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 				//Check if another field is already mapped to the same thing
 				other, ex := mappedFieldvals[mappedVal]
 				if ex {
-					//fmt.Printf("%54s | %s\n", jsonMap, key+" is mapped to the same field as "+other+"("+mappedVal+")")
 					fmt.Fprintln(log, jsonMap, key+":", "repeated value", mappedVal, "with", other)
 				} else {
 					mappedFieldvals[mappedVal] = key
 				}
 				//Check if in custom schema. We do custom first because custom schema is smaller
 				aNest, ex := customSchemas[resource][mappedVal]
-				if aNest {
+				if aNest.nested {
 					fmt.Fprintln(log, jsonMap, key+":", "is supposed to be a nest but was mapped to", mappedVal)
 				} else if !ex {
 					//check if in standard schema
@@ -198,9 +208,10 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 						nestName = true
 					case "Type":
 						nestType = true
-					case key:
-						nestKeyinside = true
 					default:
+						if mapField == key {
+							nestKeyinside = true
+						}
 						//TODO: use ADT here
 						//fmt.Println(mapping[key])
 					}
