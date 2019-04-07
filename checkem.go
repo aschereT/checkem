@@ -198,7 +198,11 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 			case interface{}:
 				//Nested
 				assertedNest := mapping[key].([]interface{})
-				nestSchem := assertedNest[0].(string)
+				nestSchem, ok := assertedNest[0].(string)
+				if !ok {
+					fmt.Fprintln(log, "	", key+":", "Nesting", key, "is missing the custom type")
+					continue
+				}
 				nesting := assertedNest[1].(map[string]interface{})
 				nestKeyinside := false
 				nestName := false
@@ -241,12 +245,9 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 	} else {
 		fmt.Fprintln(log, "Mapping is nil!")
 	}
-	//TODO: Check duplicate keys
-	//TODO: Check valid nesting
 	//TODO: Check keys missing or key not from metadata
 	fin <- true
 	return
-	//TODO: Proper logging
 }
 
 func main() {
@@ -285,10 +286,10 @@ func main() {
 
 	mappingsList, err := getFilesInDir(root + "mappings/" + board + "/")
 	if err != nil {
-		fmt.Println("ERROR: Unable to read mappings! Does the folder", board, "exists in mappings?")
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
 	finChan := make(chan bool, len(mappingsList))
 	loggers := make([]*strings.Builder, len(mappingsList))
 	//spin off analysis of each mapping in their own goroutine
@@ -296,6 +297,7 @@ func main() {
 		loggers[i] = new(strings.Builder)
 		go checkRoutine(jsonMap, finChan, loggers[i])
 	}
+
 	//wait for all to finish
 	for range mappingsList {
 		select {
