@@ -203,7 +203,11 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 					fmt.Fprintln(log, "	", key+":", "Nesting", key, "is missing the custom type")
 					continue
 				}
-				nesting := assertedNest[1].(map[string]interface{})
+				nesting, ok := assertedNest[1].(map[string]interface{})
+				if !ok {
+					fmt.Fprintln(log, "	", key+":", "Nesting", key, "is missing mappings")
+					continue
+				}
 				nestKeyinside := false
 				nestName := false
 				nestType := false
