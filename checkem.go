@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -237,6 +238,19 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 						nestName = true
 					case "Type":
 						nestType = true
+						typeString, ok := nesting[mapField].(string)
+						if !ok {
+							fmt.Fprintln(log, "	", key+":", "Nesting", key, "has empty Type")
+						}
+						curAdt, ex := adt[nestSchem]
+						if ex {
+							typeList := strings.Split(typeString, ",")
+							for _, aType := range typeList {
+								if curAdt[sort.SearchStrings(curAdt, aType)] != aType {
+									fmt.Fprintln(log, "	", key+":", "Nesting", key, "has type", aType, "which is illegal for", nestSchem)
+								}
+							}
+						}
 					default:
 						if mapField == key {
 							nestKeyinside = true
