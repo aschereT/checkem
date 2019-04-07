@@ -140,7 +140,7 @@ func getFilesInDir(folder string) ([]string, error) {
 //TODO: make it less hacky?
 func filenameChunker(filename string) (string, string) {
 	res := strings.Split(filename, "_")
-	return res[1], strings.Join(res[2:], "_")
+	return strings.TrimPrefix(res[1], "active"), strings.Join(res[2:], "_")
 }
 
 func checkRoutine(jsonMap string, fin chan bool, log chan string) {
@@ -184,7 +184,7 @@ func checkRoutine(jsonMap string, fin chan bool, log chan string) {
 					//check if in standard schema
 					_, ex := standardSchemas[resource][mappedVal]
 					if !ex {
-						fmt.Println(jsonMap, key, "is not in standard nor custom schema", mappedVal)
+						fmt.Println(jsonMap, key+":", mappedVal, "is not in", resource+"'s", "standard nor custom schema")
 					}
 				}
 			case interface{}:
@@ -216,16 +216,16 @@ func main() {
 	//check if environments/board.env exists
 	_, err := ioutil.ReadFile(root + "environment/" + board + ".env")
 	if err != nil {
-		fmt.Println("ERROR:", board+".env", "not found!")
+		fmt.Println(err)
 	}
 	//check if queries exists
 	_, err = ioutil.ReadFile(root + "queries/" + board + "/" + board + "_queries.json")
 	if err != nil {
-		fmt.Println("ERROR:", board+"_queries.json", "not found!")
+		fmt.Println(err)
 	}
 	_, err = ioutil.ReadFile(root + "queries/" + board + "/test_" + board + "_queries.json")
 	if err != nil {
-		fmt.Println("ERROR:", "test_"+board+"_queries.json", "not found!")
+		fmt.Println(err)
 	}
 
 	//load common data
