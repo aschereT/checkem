@@ -169,14 +169,14 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 				other, ex := mappedFieldvals[mappedVal]
 				if ex {
 					//fmt.Printf("%54s | %s\n", jsonMap, key+" is mapped to the same field as "+other+"("+mappedVal+")")
-					fmt.Fprintln(log, jsonMap, key, "is mapped to the same field as", other, "("+mappedVal+")")
+					fmt.Fprintln(log, jsonMap, key+":", "repeated value", mappedVal, "with", other)
 				} else {
 					mappedFieldvals[mappedVal] = key
 				}
 				//Check if in custom schema. We do custom first because custom schema is smaller
 				aNest, ex := customSchemas[resource][mappedVal]
 				if aNest {
-					fmt.Fprintln(log, jsonMap, key, "is supposed to be a nest but was mapped to", mappedVal)
+					fmt.Fprintln(log, jsonMap, key+":", "is supposed to be a nest but was mapped to", mappedVal)
 				} else if !ex {
 					//check if in standard schema
 					_, ex := standardSchemas[resource][mappedVal]
