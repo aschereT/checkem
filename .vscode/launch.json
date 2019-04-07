@@ -5,22 +5,31 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Test Valid on Blackhills",
+            "name": "Test  Blackhills",
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${fileDirname}",
+            "program": "${workspaceFolder}",
             "env": {},
             "args": ["blackhills"]
         },
         {
-            "name": "Test Valid on RVA",
+            "name": "Test RVA",
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${fileDirname}",
+            "program": "${workspaceFolder}",
             "env": {},
             "args": ["rva"]
+        },
+        {
+            "name": "Benchmark GJARA",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}",
+            "env": {},
+            "args": ["gjara"]
         }
     ]
 }
