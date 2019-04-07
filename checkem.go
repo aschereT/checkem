@@ -31,6 +31,21 @@ var root string
 var board string
 var standardSchemas map[string]map[string]empty
 var customSchemas map[string]map[string]schemaNest
+var adt map[string][]string
+
+//used for reading ADT
+func readAdt() (map[string][]string, error) {
+	file, err := ioutil.ReadFile("adt.json")
+	if err != nil {
+		return nil, err
+	}
+	var res map[string][]string
+	err = json.Unmarshal([]byte(file), &res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
 
 //used for checkRoutines
 func readJSON(filepath string) (map[string]interface{}, error) {
@@ -60,7 +75,7 @@ func readSchemaStandard(filepath string) (map[string]interface{}, error) {
 	return res.SchemaMappings["_doc"]["properties"].(map[string]interface{}), nil
 }
 
-//like readJSON, but reads standard schema JSON only
+//like readJSON, but reads custom schema JSON only
 func readSchemaCustom(filepath string) (map[string]interface{}, error) {
 	file, err := ioutil.ReadFile(filepath)
 	if err != nil {
@@ -74,6 +89,7 @@ func readSchemaCustom(filepath string) (map[string]interface{}, error) {
 	return res.SchemaMappings, nil
 }
 
+//loads all schemas to memory
 func readSchemas() error {
 	//TODO: Just use the resource name
 	resources := map[string]string{"agents": "agent", "offices": "office", "openhouses": "openhouse", "properties": "property"}
@@ -284,6 +300,11 @@ func main() {
 	//TODO: Load acceptable data types
 	err = readSchemas()
 	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	if adt, err = readAdt(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
