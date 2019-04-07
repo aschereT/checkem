@@ -143,14 +143,12 @@ func filenameChunker(filename string) (string, string) {
 	return strings.TrimPrefix(res[1], "active"), strings.Join(res[2:], "_")
 }
 
-func checkRoutine(jsonMap string, fin chan bool, log chan string) {
+func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 	//TODO: Read json mapping
-	defer close(log)
 	mapping, err := readJSON(root + "mappings/" + board + "/" + jsonMap)
 	if err != nil {
-		fmt.Println(err)
+		log.WriteString(err.Error())
 		fin <- false
-		//log <- "FAIL"
 		return
 	}
 
@@ -162,7 +160,6 @@ func checkRoutine(jsonMap string, fin chan bool, log chan string) {
 		for key := range mapping {
 			switch mapping[key].(type) {
 			case string:
-				//fmt.Println("Key", key, "|Value", mapping[key])
 				mappedVal := mapping[key].(string)
 				if mappedVal == "" {
 					//ignore empty fields
@@ -172,25 +169,25 @@ func checkRoutine(jsonMap string, fin chan bool, log chan string) {
 				other, ex := mappedFieldvals[mappedVal]
 				if ex {
 					//fmt.Printf("%54s | %s\n", jsonMap, key+" is mapped to the same field as "+other+"("+mappedVal+")")
-					fmt.Println(jsonMap, key, "is mapped to the same field as", other, "("+mappedVal+")")
+					fmt.Fprintln(log, jsonMap, key, "is mapped to the same field as", other, "("+mappedVal+")")
 				} else {
 					mappedFieldvals[mappedVal] = key
 				}
 				//Check if in custom schema. We do custom first because custom schema is smaller
 				aNest, ex := customSchemas[resource][mappedVal]
 				if aNest {
-					fmt.Println(jsonMap, key, "is supposed to be a nest but was mapped to", mappedVal)
+					fmt.Fprintln(log, jsonMap, key, "is supposed to be a nest but was mapped to", mappedVal)
 				} else if !ex {
 					//check if in standard schema
 					_, ex := standardSchemas[resource][mappedVal]
 					if !ex {
-						fmt.Println(jsonMap, key+":", mappedVal, "is not in", resource+"'s", "standard nor custom schema")
+						fmt.Fprintln(log, jsonMap, key+":", mappedVal, "is not in", resource+"'s", "standard nor custom schema")
 					}
 				}
 			case interface{}:
 				//Nested
 				assertedNest := mapping[key].([]interface{})
-				nestSchem := assertedNest[0].(string)
+				//nestSchem := assertedNest[0].(string)
 				nesting := assertedNest[1].(map[string]interface{})
 				nestKeyinside := false
 				nestName := false
@@ -209,18 +206,17 @@ func checkRoutine(jsonMap string, fin chan bool, log chan string) {
 					}
 				}
 				if !nestName {
-					fmt.Println(jsonMap, key+":", "Nesting is missing Name field")
+					fmt.Fprintln(log, jsonMap, key+":", "Missing Name inside nesting")
 				}
 				if !nestType {
-					fmt.Println(jsonMap, key+":", "Nesting is missing Type field")
+					fmt.Fprintln(log, jsonMap, key+":", "Missing Type inside nesting")
 				}
 				if !nestKeyinside {
-					fmt.Println(jsonMap, key+":", "Nesting is missing", key, "field")
-					fmt.Println(jsonMap, key+":", "Nesting is missing Type field", nestSchem)
+					fmt.Fprintln(log, jsonMap, key+":", "Missing key inside nesting")
 				}
 				//fmt.Println("Key", key, "|Nesting ", mapping[key])
 			default:
-				//fmt.Println("Key", key, "|Unknown [Something else]")
+				fmt.Fprintln(log, jsonMap, key+":", "Unknown mapping")
 			}
 		}
 	}
@@ -230,12 +226,11 @@ func checkRoutine(jsonMap string, fin chan bool, log chan string) {
 	fin <- true
 	return
 	//TODO: Proper logging
-	log <- "SUCC"
 }
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("ERROR: Checkem needs an argument!")
+		fmt.Println("Usage: checkem <board name>")
 		os.Exit(1)
 	}
 
@@ -274,11 +269,11 @@ func main() {
 		os.Exit(1)
 	}
 	finChan := make(chan bool, len(mappingsList))
-	logChans := make([]chan string, len(mappingsList))
+	loggers := make([]*strings.Builder, len(mappingsList))
 	//spin off analysis of each mapping in their own goroutine
 	for i, jsonMap := range mappingsList {
-		logChans[i] = make(chan string)
-		go checkRoutine(jsonMap, finChan, logChans[i])
+		loggers[i] = new(strings.Builder)
+		go checkRoutine(jsonMap, finChan, loggers[i])
 	}
 	//wait for all to finish
 	for range mappingsList {
@@ -286,5 +281,9 @@ func main() {
 		case <-finChan:
 		}
 	}
-	//TODO: Print off logs in a deterministic manner
+
+	//Print out all logs in order
+	for _, log := range loggers {
+		fmt.Print(log.String())
+	}
 }
