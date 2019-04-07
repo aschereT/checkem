@@ -109,7 +109,7 @@ func readSchemas() error {
 				return
 			}
 			for k := range propertiesMap {
-				curNesting := schemaNest{nested: propertiesMap[k].(map[string]interface{})["type"] == "nested"}
+				curNesting := schemaNest{nested: propertiesMap[k].(map[string]interface{})["type"] == "nested", properties: map[string]empty{}}
 				if curNesting.nested {
 					for p := range propertiesMap[k].(map[string]interface{})["properties"].(map[string]interface{}) {
 						curNesting.properties[p] = empty{}
