@@ -246,7 +246,7 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 						if ex {
 							typeList := strings.Split(typeString, ",")
 							for _, aType := range typeList {
-								if curAdt[sort.SearchStrings(curAdt, aType)] != aType {
+								if curAdt[sort.SearchStrings(curAdt, strings.Trim(aType, " "))] != strings.Trim(aType, " ") {
 									fmt.Fprintln(log, "	", key+":", "Nesting", key, "has type", aType, "which is illegal for", nestSchem)
 								}
 							}
