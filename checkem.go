@@ -172,15 +172,17 @@ func filenameChunker(filename string) (string, string) {
 	return strings.TrimPrefix(res[1], "active"), strings.Join(res[2:], "_")
 }
 
-func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
+func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 	fmt.Fprintln(log, jsonMap)
 	mapping, err := readJSON(root + "mappings/" + board + "/" + jsonMap)
 	if err != nil {
 		fmt.Fprintln(log, err)
-		fin <- false
+		fin <- 1
 		return
 	}
 
+	//TODO: wrap strings builder, so no need to manually keep track
+	errCount := 0
 	//stores all non-nested values we have encountered so far
 	mappedFieldvals := map[string]string{}
 	resource, _ := filenameChunker(jsonMap)
@@ -198,6 +200,7 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 				other, ex := mappedFieldvals[mappedVal]
 				if ex {
 					fmt.Fprintln(log, "	", key+":", "repeated value", mappedVal, "with", other)
+					errCount++
 				} else {
 					mappedFieldvals[mappedVal] = key
 				}
@@ -208,9 +211,11 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 					_, ex := standardSchemas[resource][mappedVal]
 					if !ex {
 						fmt.Fprintln(log, "	", key+":", mappedVal, "is not in", resource+"'s", "standard nor custom schema")
+						errCount++
 					}
 				} else if aNest.nested {
 					fmt.Fprintln(log, "	", key+":", "is supposed to be a nest but was mapped to", mappedVal)
+					errCount++
 				}
 			case interface{}:
 				//Nested
@@ -218,11 +223,13 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 				nestSchem, ok := assertedNest[0].(string)
 				if !ok {
 					fmt.Fprintln(log, "	", key+":", "Nesting", key, "is missing the custom type")
+					errCount++
 					continue
 				}
 				nesting, ok := assertedNest[1].(map[string]interface{})
 				if !ok {
 					fmt.Fprintln(log, "	", key+":", "Nesting", key, "is missing mappings")
+					errCount++
 					continue
 				}
 				nestKeyinside := false
@@ -231,6 +238,7 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 				aNest, ex := customSchemas[resource][nestSchem]
 				if !ex || !aNest.nested {
 					fmt.Fprintln(log, "	", key+":", "Nesting", key, "has an invalid nesting", nestSchem)
+					errCount++
 				}
 				for mapField := range nesting {
 					switch mapField {
@@ -241,13 +249,15 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 						typeString, ok := nesting[mapField].(string)
 						if !ok {
 							fmt.Fprintln(log, "	", key+":", "Nesting", key, "has empty Type")
+							errCount++
 						}
 						curAdt, ex := adt[nestSchem]
 						if ex {
 							typeList := strings.Split(typeString, ",")
 							for _, aType := range typeList {
-								if curAdt[sort.SearchStrings(curAdt, strings.Trim(aType, " "))] != strings.Trim(aType, " ") {
+								if (sort.SearchStrings(curAdt, strings.Trim(aType, " ")) >= len(curAdt)) || (curAdt[sort.SearchStrings(curAdt, strings.Trim(aType, " "))] != strings.Trim(aType, " ")) {
 									fmt.Fprintln(log, "	", key+":", "Nesting", key, "has type", aType, "which is illegal for", nestSchem)
+									errCount++
 								}
 							}
 						}
@@ -258,6 +268,7 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 						_, ex = customSchemas[resource][nestSchem].properties[nesting[mapField].(string)]
 						if !ex {
 							fmt.Fprintln(log, "	", key+":", "Nested property", mapField, "has an invalid nesting", nesting[mapField].(string), "for", nestSchem)
+							errCount++
 						}
 						//TODO: use ADT here
 						//fmt.Println(mapping[key])
@@ -265,22 +276,26 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 				}
 				if !nestName {
 					fmt.Fprintln(log, "	", key+":", "Missing Name inside nesting")
+					errCount++
 				}
 				if !nestType {
 					fmt.Fprintln(log, "	", key+":", "Missing Type inside nesting")
+					errCount++
 				}
 				if !nestKeyinside {
 					fmt.Fprintln(log, "	", key+":", "Missing itself inside nesting")
+					errCount++
 				}
 			default:
 				fmt.Fprintln(log, "	", key+":", "Unknown mapping")
+				errCount++
 			}
 		}
 	} else {
 		fmt.Fprintln(log, "Mapping is nil!")
 	}
 	//TODO: Check keys missing or key not from metadata
-	fin <- true
+	fin <- errCount
 	return
 }
 
@@ -329,7 +344,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	finChan := make(chan bool, len(mappingsList))
+	finChan := make(chan int, len(mappingsList))
 	loggers := make([]*strings.Builder, len(mappingsList))
 	//spin off analysis of each mapping in their own goroutine
 	for i, jsonMap := range mappingsList {
@@ -337,10 +352,12 @@ func main() {
 		go checkRoutine(jsonMap, finChan, loggers[i])
 	}
 
+	errorSum := 0
 	//wait for all to finish
 	for range mappingsList {
 		select {
-		case <-finChan:
+		case errorCount := <-finChan:
+			errorSum += errorCount
 		}
 	}
 
@@ -348,4 +365,6 @@ func main() {
 	for _, log := range loggers {
 		fmt.Print(log.String())
 	}
+	fmt.Println("Count", errorSum)
+	os.Exit(errorSum)
 }
