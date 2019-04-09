@@ -257,7 +257,7 @@ func checkRoutine(jsonMap string, fin chan bool, log *strings.Builder) {
 						}
 						_, ex = customSchemas[resource][nestSchem].properties[nesting[mapField].(string)]
 						if !ex {
-							fmt.Fprintln(log, "	", key+":", "Nested property", mapField, "has an invalid nesting", nesting[mapField].(string))
+							fmt.Fprintln(log, "	", key+":", "Nested property", mapField, "has an invalid nesting", nesting[mapField].(string), "for", nestSchem)
 						}
 						//TODO: use ADT here
 						//fmt.Println(mapping[key])
