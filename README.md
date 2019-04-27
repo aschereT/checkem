@@ -2,6 +2,13 @@
 Checks REMAX mapping json for common errors
 
 
+Compilation:
+
+```
+go build -ldflags="-s -w"
+```
+
+
 Get largest folders (for benchmarking):
 
 

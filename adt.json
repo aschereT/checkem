@@ -1,85 +1,85 @@
 {
-    "DocumentOnFile": [
-        "DocumentNumber"
-    ],
-    "ExtendedAgentAndOffice": [
-        "Boolean",
-        "Date",
-        "Description",
-        "MUI",
-        "PhoneNumber",
-        "Value"
-    ],
-    "Finance": [
-        "Area",
-        "Boolean",
-        "Date",
-        "Description",
-        "PerArea",
-        "Price",
-        "Value"
-    ],
-    "GreenBuildingVerificationType": [
-        "Certifications",
-        "Description",
-        "Value"
-    ],
-    "GreenBuildingVerificationTypeCustom": [
-        "Boolean",
-        "Certifications",
-        "Description",
-        "Value"
-    ],
-    "GreenEnergyGeneration": [
-        "Certifications",
-        "Description",
-        "Value"
-    ],
-    "InformationAndTerms": [
-        "Boolean",
-        "Date",
-        "Description",
-        "Quantity",
-        "TimePeriod",
-        "Value"
-    ],
-    "PowerProductionTypeCustom": [
-        "Boolean",
-        "Description",
-        "Value"
-    ],
-    "PropertyDetails": [
-        "Address",
-        "Area",
-        "Boolean",
-        "Date",
-        "Description",
-        "Dimensions",
-        "Level",
-        "Price",
-        "Quantity",
-        "Value"
-    ],
-    "Rooms": [
-        "Address",
-        "Area",
-        "Boolean",
-        "Date",
-        "Description",
-        "Dimensions",
-        "Level",
-        "Price",
-        "Quantity",
-        "Value"
-    ],
-    "SocialMedia": [
-        "Website"
-    ],
-    "StormProtection": [
-        "Description",
-        "Features"
-    ],
-    "VOWPermissions": [
-        "Boolean"
-    ]
+  "DocumentOnFile": [
+    "DocumentNumber"
+  ],
+  "ExtendedAgentAndOffice": [
+    "Boolean",
+    "Date",
+    "Description",
+    "MUI",
+    "PhoneNumber",
+    "Value"
+  ],
+  "Finance": [
+    "Area",
+    "Boolean",
+    "Date",
+    "Description",
+    "PerArea",
+    "Price",
+    "Value"
+  ],
+  "GreenBuildingVerificationType": [
+    "Certifications",
+    "Description",
+    "Value"
+  ],
+  "GreenBuildingVerificationTypeCustom": [
+    "Boolean",
+    "Certifications",
+    "Description",
+    "Value"
+  ],
+  "GreenEnergyGeneration": [
+    "Certifications",
+    "Description",
+    "Value"
+  ],
+  "InformationAndTerms": [
+    "Boolean",
+    "Date",
+    "Description",
+    "Quantity",
+    "TimePeriod",
+    "Value"
+  ],
+  "PowerProductionTypeCustom": [
+    "Boolean",
+    "Description",
+    "Value"
+  ],
+  "PropertyDetails": [
+    "Address",
+    "Area",
+    "Boolean",
+    "Date",
+    "Description",
+    "Dimensions",
+    "Level",
+    "Price",
+    "Quantity",
+    "Value"
+  ],
+  "Rooms": [
+    "Address",
+    "Area",
+    "Boolean",
+    "Date",
+    "Description",
+    "Dimensions",
+    "Level",
+    "Price",
+    "Quantity",
+    "Value"
+  ],
+  "SocialMedia": [
+    "Website"
+  ],
+  "StormProtection": [
+    "Description",
+    "Features"
+  ],
+  "VOWPermissions": [
+    "Boolean"
+  ]
 }
