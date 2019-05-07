@@ -119,7 +119,7 @@ func readSchemas() error {
 
 	go func() {
 		for resourceType := range resources {
-			propertiesMap, err := readSchemaCustom(schemaPref + resourceType + "_custom.json")
+			propertiesMap, err := readSchemaCustom(schemaPref + resourceType + "_superset_custom.json")
 			curSchem := map[string]schemaNest{}
 			if err != nil {
 				fin <- err
