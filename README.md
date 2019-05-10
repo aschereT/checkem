@@ -1,6 +1,13 @@
 # checkem
 Checks REMAX mapping json for common errors
 
+Legacy branch for the old CMO mapping standards, where custom nestings exists.
+
+
+TODO:
+- Convert to the new standardised schema
+- Read metadata
+
 
 Compilation:
 
