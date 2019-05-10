@@ -103,7 +103,7 @@ func readSchemas() error {
 	//process standard schema
 	go func() {
 		for resourceType := range resources {
-			propertiesMap, err := readSchemaStandard(schemaPref + resourceType + "_standard.json")
+			propertiesMap, err := readSchemaStandard(schemaPref + resourceType + "_superset_standard.json")
 			curSchem := map[string]empty{}
 			if err != nil {
 				fin <- err
