@@ -12,6 +12,7 @@ New and improved, now supports new schema!
 ```Shell
 go build -ldflags="-s -w"
 cp ./checkem /usr/local/bin/
+cp ./adt.json /usr/local/bin/
 ```
 
 ### Miscellaneous Commands
