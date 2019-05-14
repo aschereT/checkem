@@ -11,14 +11,7 @@ import (
 
 type empty struct{}
 
-//schemaStandard is the standard schema's struct, discarding uneeded fields
 type schemaStandard struct {
-	//Settings       interface{}                       `json:"settings"`
-	SchemaMappings map[string]map[string]interface{} `json:"mappings"`
-}
-
-//schemaCustom is the custom schema's struct. Simple.
-type schemaCustom struct {
 	SchemaMappings map[string]interface{} `json:"properties"`
 }
 
@@ -30,8 +23,7 @@ type schemaNest struct {
 
 var root string
 var board string
-var standardSchemas map[string]map[string]empty
-var customSchemas map[string]map[string]schemaNest
+var standardSchemas map[string]map[string]schemaNest
 var adt map[string][]string
 
 //used for reading ADT
@@ -62,27 +54,12 @@ func readJSON(filepath string) (map[string]interface{}, error) {
 	return res, nil
 }
 
-//like readJSON, but reads standard schema JSON only
 func readSchemaStandard(filepath string) (map[string]interface{}, error) {
 	file, err := ioutil.ReadFile(filepath)
 	if err != nil {
 		return nil, err
 	}
 	var res schemaStandard
-	err = json.Unmarshal([]byte(file), &res)
-	if err != nil {
-		return nil, err
-	}
-	return res.SchemaMappings["_doc"]["properties"].(map[string]interface{}), nil
-}
-
-//like readJSON, but reads custom schema JSON only
-func readSchemaCustom(filepath string) (map[string]interface{}, error) {
-	file, err := ioutil.ReadFile(filepath)
-	if err != nil {
-		return nil, err
-	}
-	var res schemaCustom
 	err = json.Unmarshal([]byte(file), &res)
 	if err != nil {
 		return nil, err
@@ -96,30 +73,12 @@ func readSchemas() error {
 	resources := map[string]string{"agents": "agent", "offices": "office", "openhouses": "openhouse", "properties": "property"}
 	schemaPref := root + "resources/es_mappings/es_"
 
-	standardSchemas = map[string]map[string]empty{}
-	customSchemas = map[string]map[string]schemaNest{}
-
-	fin := make(chan error, 2)
-	//process standard schema
-	go func() {
-		for resourceType := range resources {
-			propertiesMap, err := readSchemaStandard(schemaPref + resourceType + "_superset_standard.json")
-			curSchem := map[string]empty{}
-			if err != nil {
-				fin <- err
-				return
-			}
-			for k := range propertiesMap {
-				curSchem[k] = empty{}
-			}
-			standardSchemas[resources[resourceType]] = curSchem
-		}
-		fin <- nil
-	}()
-
-	go func() {
-		for resourceType := range resources {
-			propertiesMap, err := readSchemaCustom(schemaPref + resourceType + "_superset_custom.json")
+	standardSchemas = map[string]map[string]schemaNest{}
+	
+	fin := make(chan error, 4)
+	for resourceType := range resources {
+		go func(resType string) {
+			propertiesMap, err := readSchemaStandard(schemaPref + resType + "_standard.json")
 			curSchem := map[string]schemaNest{}
 			if err != nil {
 				fin <- err
@@ -134,12 +93,12 @@ func readSchemas() error {
 				}
 				curSchem[k] = curNesting
 			}
-			customSchemas[resources[resourceType]] = curSchem
-		}
-		fin <- nil
-	}()
+			standardSchemas[resources[resType]] = curSchem
+			fin <- nil
+		}(resourceType)
+	}
 
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 4; i++ {
 		select {
 		case err := <-fin:
 			if err != nil {
@@ -196,6 +155,15 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 					//ignore empty fields
 					continue
 				}
+				//Check if in schema
+				aNest, ex := standardSchemas[resource][mappedVal]
+				if !ex {
+					fmt.Fprintln(log, "	", key+":", mappedVal, "is not in", resource+"'s", "standard nor custom schema")
+					errCount++
+				} else if aNest.nested {
+					fmt.Fprintln(log, "	", key+":", "is supposed to be a nest but was mapped to", mappedVal)
+					errCount++
+				}
 				//Check if another field is already mapped to the same thing
 				other, ex := mappedFieldvals[mappedVal]
 				if ex {
@@ -203,19 +171,6 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 					errCount++
 				} else {
 					mappedFieldvals[mappedVal] = key
-				}
-				//Check if in custom schema. We do custom first because custom schema is smaller
-				aNest, ex := customSchemas[resource][mappedVal]
-				if !ex {
-					//check if in standard schema
-					_, ex := standardSchemas[resource][mappedVal]
-					if !ex {
-						fmt.Fprintln(log, "	", key+":", mappedVal, "is not in", resource+"'s", "standard nor custom schema")
-						errCount++
-					}
-				} else if aNest.nested {
-					fmt.Fprintln(log, "	", key+":", "is supposed to be a nest but was mapped to", mappedVal)
-					errCount++
 				}
 			case interface{}:
 				//Nested
@@ -232,10 +187,8 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 					errCount++
 					continue
 				}
-				nestKeyinside := false
-				nestName := false
-				nestType := false
-				aNest, ex := customSchemas[resource][nestSchem]
+				nestKeyinside, nestName, nestType := false, false, false
+				aNest, ex := standardSchemas[resource][nestSchem]
 				if !ex || !aNest.nested {
 					fmt.Fprintln(log, "	", key+":", "Nesting", key, "has an invalid nesting", nestSchem)
 					errCount++
@@ -265,12 +218,11 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 						if mapField == key {
 							nestKeyinside = true
 						}
-						_, ex = customSchemas[resource][nestSchem].properties[nesting[mapField].(string)]
+						_, ex = standardSchemas[resource][nestSchem].properties[nesting[mapField].(string)]
 						if !ex {
 							fmt.Fprintln(log, "	", key+":", "Nested property", mapField, "has an invalid nesting", nesting[mapField].(string), "for", nestSchem)
 							errCount++
 						}
-						//TODO: use ADT here
 						//fmt.Println(mapping[key])
 					}
 				}
@@ -326,7 +278,6 @@ func main() {
 
 	//load common data
 	//schema, acceptable data types
-	//TODO: Load acceptable data types
 	err = readSchemas()
 	if err != nil {
 		fmt.Println(err)
