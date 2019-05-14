@@ -12,7 +12,7 @@ import (
 type empty struct{}
 
 type schemaStandard struct {
-	SchemaMappings map[string]interface{} `json:"properties"`
+	SchemaMappings map[string]map[string]interface{} `json:"mappings"`
 }
 
 //schemaNest is the struct of choice for customs. If nested = true, fields should be mapped to one of the properties
@@ -64,7 +64,7 @@ func readSchemaStandard(filepath string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return res.SchemaMappings, nil
+	return res.SchemaMappings["_doc"]["properties"].(map[string]interface{}), nil
 }
 
 //loads all schemas to memory
@@ -158,7 +158,7 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 				//Check if in schema
 				aNest, ex := standardSchemas[resource][mappedVal]
 				if !ex {
-					fmt.Fprintln(log, "	", key+":", mappedVal, "is not in", resource+"'s", "standard nor custom schema")
+					fmt.Fprintln(log, "	", key+":", mappedVal, "is not in", resource+"'s", "standard schema")
 					errCount++
 				} else if aNest.nested {
 					fmt.Fprintln(log, "	", key+":", "is supposed to be a nest but was mapped to", mappedVal)
