@@ -317,5 +317,15 @@ func main() {
 		fmt.Print(log.String())
 	}
 	fmt.Println("Count", errorSum)
-	os.Exit(errorSum)
+	os.Exit(clamp(errorSum, 0, 255))
+}
+
+func clamp(val int, lo int, hi int) int {
+	if val > hi {
+		return hi
+	}
+	if val < lo {
+		return lo
+	}
+	return val
 }
