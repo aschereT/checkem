@@ -3,16 +3,18 @@ Checks REMAX mapping json for common errors
 
 New and improved, now supports new schema!
 
-TODO:
+### TODO
 - Read metadata
 
 
-Compilation:
+### Compilation
 
 ```Shell
 go build -ldflags="-s -w"
+cp ./checkem /usr/local/bin/
 ```
 
+### Miscellaneous Commands
 
 Get largest folders (for benchmarking):
 
