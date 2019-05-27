@@ -1,5 +1,5 @@
 # checkem
-Checks REMAX mapping json for common errors
+Checks mapping json for common errors
 
 New and improved, now supports new schema!
 
