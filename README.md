@@ -6,6 +6,7 @@ New and improved, now supports new schema!
 ### TODO
 - Read metadata
 - Better way of including adt.json (embed in source?)
+- Deterministic iteration of mappings map
 
 ### Compilation
 
