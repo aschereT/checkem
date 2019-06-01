@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -131,7 +132,8 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 	resource, _ := filenameChunker(jsonMap)
 	//TODO: Read csv metadata
 	if mapping != nil {
-		for key := range mapping {
+		detKeys := sortKeys(mapping)
+		for _, key := range detKeys {
 			switch mapping[key].(type) {
 			case string:
 				mappedVal := mapping[key].(string)
@@ -297,4 +299,16 @@ func clamp(val int, lo int, hi int) int {
 		return lo
 	}
 	return val
+}
+
+//https://stackoverflow.com/questions/18342784/how-to-iterate-through-a-map-in-golang-in-order
+func sortKeys(m map[string]interface{}) []string {
+	keys := make([]string, len(m))
+	i := 0
+	for k := range m {
+		keys[i] = k
+		i++
+	}
+	sort.Strings(keys)
+	return keys
 }
