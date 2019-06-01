@@ -5,15 +5,12 @@ New and improved, now supports new schema!
 
 ### TODO
 - Read metadata
-- Better way of including adt.json (embed in source?)
-- Deterministic iteration of mappings map
 
-### Compilation
+### Installation
 
-```Shell
-go build -ldflags="-s -w"
-cp ./checkem /usr/local/bin/
-cp ./adt.json /usr/local/bin/
+```shell
+make
+make install
 ```
 
 ### Miscellaneous Commands
