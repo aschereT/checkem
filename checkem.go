@@ -39,7 +39,7 @@ func readJSON(filepath string) (map[string]interface{}, error) {
 	return res, nil
 }
 
-func readSchemaStandard(filepath string) (map[string]interface{}, error) {
+func readSchema(filepath string) (map[string]interface{}, error) {
 	file, err := ioutil.ReadFile(filepath)
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func readSchemas() error {
 	fin := make(chan error, 4)
 	for resourceType := range resources {
 		go func(resType string) {
-			propertiesMap, err := readSchemaStandard(schemaPref + resType + "_standard.json")
+			propertiesMap, err := readSchema(schemaPref + resType + "_standard.json")
 			curSchem := map[string]schemaNest{}
 			if err != nil {
 				fin <- err
@@ -110,10 +110,31 @@ func getFilesInDir(folder string) ([]string, error) {
 }
 
 //given a mapping json filename, returns resource and class
-//TODO: make it less hacky?
 func filenameChunker(filename string) (string, string) {
 	res := strings.Split(filename, "_")
 	return strings.TrimPrefix(res[1], "active"), strings.Join(res[2:], "_")
+}
+
+func clamp(val int, lo int, hi int) int {
+	if val > hi {
+		return hi
+	}
+	if val < lo {
+		return lo
+	}
+	return val
+}
+
+//https://stackoverflow.com/questions/18342784/how-to-iterate-through-a-map-in-golang-in-order
+func sortKeys(m map[string]interface{}) []string {
+	keys := make([]string, len(m))
+	i := 0
+	for k := range m {
+		keys[i] = k
+		i++
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
@@ -289,26 +310,4 @@ func main() {
 	}
 	fmt.Println("Count", errorSum)
 	os.Exit(clamp(errorSum, 0, 255))
-}
-
-func clamp(val int, lo int, hi int) int {
-	if val > hi {
-		return hi
-	}
-	if val < lo {
-		return lo
-	}
-	return val
-}
-
-//https://stackoverflow.com/questions/18342784/how-to-iterate-through-a-map-in-golang-in-order
-func sortKeys(m map[string]interface{}) []string {
-	keys := make([]string, len(m))
-	i := 0
-	for k := range m {
-		keys[i] = k
-		i++
-	}
-	sort.Strings(keys)
-	return keys
 }
