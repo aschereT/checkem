@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"sort"
 	"strings"
 )
 
@@ -24,21 +23,6 @@ type schemaNest struct {
 var root string
 var board string
 var standardSchemas map[string]map[string]schemaNest
-var adt map[string][]string
-
-//used for reading ADT
-func readAdt() (map[string][]string, error) {
-	file, err := ioutil.ReadFile("adt.json")
-	if err != nil {
-		return nil, err
-	}
-	var res map[string][]string
-	err = json.Unmarshal([]byte(file), &res)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
-}
 
 //used for checkRoutines
 func readJSON(filepath string) (map[string]interface{}, error) {
@@ -74,7 +58,7 @@ func readSchemas() error {
 	schemaPref := root + "resources/es_mappings/es_"
 
 	standardSchemas = map[string]map[string]schemaNest{}
-	
+
 	fin := make(chan error, 4)
 	for resourceType := range resources {
 		go func(resType string) {
@@ -199,21 +183,10 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 						nestName = true
 					case "Type":
 						nestType = true
-						typeString, ok := nesting[mapField].(string)
+						_, ok := nesting[mapField].(string)
 						if !ok {
 							fmt.Fprintln(log, "	", key+":", "Nesting", key, "has empty Type")
 							errCount++
-						}
-						curAdt, ex := adt[nestSchem]
-						if ex {
-							typeList := strings.Split(typeString, ",")
-							for _, aType := range typeList {
-								if (sort.SearchStrings(curAdt, strings.Trim(aType, " ")) >= len(curAdt)) || (curAdt[sort.SearchStrings(curAdt, strings.Trim(aType, " "))] != strings.Trim(aType, " ")) {
-									//TODO: Take out ADT
-									// fmt.Fprintln(log, "	", key+":", "Nesting", key, "has type", aType, "which is illegal for", nestSchem)
-									// errCount++
-								}
-							}
 						}
 					default:
 						if mapField == key {
@@ -281,11 +254,6 @@ func main() {
 	//schema, acceptable data types
 	err = readSchemas()
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	if adt, err = readAdt(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
