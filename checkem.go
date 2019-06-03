@@ -55,6 +55,7 @@ func readCSV(filepath string) (map[string]bool, error) {
 	for _, fieldname := range records {
 		res[fieldname[0]] = false
 	}
+	delete(res, "SystemName")
 	return res, nil
 }
 
