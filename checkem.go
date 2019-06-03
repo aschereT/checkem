@@ -247,12 +247,12 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 						}
 					default:
 						//check if in metadata
-						_, ex = csvList[key]
+						_, ex = csvList[mapField]
 						if !ex {
 							fmt.Fprintln(log, "	", key+":", "not in metadata")
 							errCount++
 						} else {
-							csvList[key] = true
+							csvList[mapField] = true
 						}
 						if mapField == key {
 							nestKeyinside = true
