@@ -132,7 +132,7 @@ func getFilesInDir(folder string) ([]string, error) {
 //given a mapping json filename, returns resource and class
 func filenameChunker(filename string) (string, string) {
 	res := strings.Split(filename, "_")
-	return strings.TrimPrefix(res[1], "active"), strings.Join(res[2:len(res)-1], "_")
+	return res[1], strings.Join(res[2:len(res)-1], "_")
 }
 
 func clamp(val int, lo int, hi int) int {
@@ -167,6 +167,7 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 	}
 	resource, class := filenameChunker(jsonMap)
 	csvList, err := readCSV(root + "metadata/" + board + "_" + resource + "_" + class + ".csv")
+	resource = strings.TrimPrefix(resource, "active")
 	if err != nil {
 		fmt.Fprintln(log, err)
 		fin <- 1
