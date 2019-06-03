@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"encoding/csv"
 )
 
 type empty struct{}
@@ -35,6 +36,24 @@ func readJSON(filepath string) (map[string]interface{}, error) {
 	err = json.Unmarshal([]byte(file), &res)
 	if err != nil {
 		return nil, err
+	}
+	return res, nil
+}
+
+func readCSV(filepath string) (map[string]bool, error) {
+	file, err := os.Open(filepath)
+	if err != nil {
+		return nil, err
+	}
+	res := make(map[string]bool)
+	reader := csv.NewReader(file)
+	records, err := reader.ReadAll()
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+	for _, fieldname := range records {
+		res[fieldname[0]] = false
 	}
 	return res, nil
 }
@@ -112,7 +131,7 @@ func getFilesInDir(folder string) ([]string, error) {
 //given a mapping json filename, returns resource and class
 func filenameChunker(filename string) (string, string) {
 	res := strings.Split(filename, "_")
-	return strings.TrimPrefix(res[1], "active"), strings.Join(res[2:], "_")
+	return strings.TrimPrefix(res[1], "active"), strings.Join(res[2:len(res)-1], "_")
 }
 
 func clamp(val int, lo int, hi int) int {
@@ -145,12 +164,18 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 		fin <- 1
 		return
 	}
+	resource, class := filenameChunker(jsonMap)
+	csvList, err := readCSV(root + "metadata/" + board + "_" + resource + "_" + class + ".csv")
+	if err != nil {
+		fmt.Fprintln(log, err)
+		fin <- 1
+		return
+	}
 
 	//TODO: wrap strings builder, so no need to manually keep track
 	errCount := 0
 	//stores all non-nested values we have encountered so far
 	mappedFieldvals := map[string]string{}
-	resource, _ := filenameChunker(jsonMap)
 	//TODO: Read csv metadata
 	if mapping != nil {
 		detKeys := sortKeys(mapping)
@@ -158,6 +183,14 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 			switch mapping[key].(type) {
 			case string:
 				mappedVal := mapping[key].(string)
+				//check if in metadata
+				_, ex := csvList[key]
+				if !ex {
+					fmt.Fprintln(log, "	", key+":", "not in metadata")
+					errCount++
+				} else {
+					csvList[key] = true
+				}
 				if mappedVal == "" {
 					//ignore empty fields
 					continue
@@ -212,6 +245,14 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 							errCount++
 						}
 					default:
+						//check if in metadata
+						_, ex = csvList[key]
+						if !ex {
+							fmt.Fprintln(log, "	", key+":", "not in metadata")
+							errCount++
+						} else {
+							csvList[key] = true
+						}
 						if mapField == key {
 							nestKeyinside = true
 						}
@@ -220,7 +261,6 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 							fmt.Fprintln(log, "	", key+":", "Nested property", mapField, "has an invalid nesting", nesting[mapField].(string), "for", nestSchem)
 							errCount++
 						}
-						//fmt.Println(mapping[key])
 					}
 				}
 				if !nestName {
@@ -244,6 +284,12 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 		fmt.Fprintln(log, "Mapping is nil!")
 	}
 	//TODO: Check keys missing or key not from metadata
+	for index, csvRec := range csvList {
+		if !csvRec {
+			fmt.Fprintln(log, "	", index+":", "Not found in mappings")
+			errCount++
+		}
+	}
 	fin <- errCount
 	return
 }
