@@ -1,13 +1,13 @@
 package main
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"sort"
 	"strings"
-	"encoding/csv"
 )
 
 type empty struct{}
@@ -158,7 +158,7 @@ func sortKeys(m map[string]interface{}) []string {
 }
 
 func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
-	fmt.Fprintln(log, jsonMap)
+	// fmt.Fprintln(log, jsonMap)
 	mapping, err := readJSON(root + "mappings/" + board + "/" + jsonMap)
 	if err != nil {
 		fmt.Fprintln(log, err)
@@ -298,7 +298,7 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: checkem <board name>")
+		fmt.Println("Usage: ce <board name> <optional: log per file>")
 		os.Exit(1)
 	}
 
@@ -352,10 +352,26 @@ func main() {
 		}
 	}
 
-	//Print out all logs in order
-	for _, log := range loggers {
-		fmt.Print(log.String())
+	if len(os.Args) == 2 {
+		//Print out all logs in order
+		for i, jsonMap := range mappingsList {
+			fmt.Println(jsonMap)
+			fmt.Print(loggers[i].String())
+		}
+		fmt.Println("Count", errorSum)
+	} else {
+		// https://www.socketloop.com/tutorials/golang-check-if-directory-exist-and-create-if-does-not-exist
+		if _, err := os.Stat(root + "report/"); os.IsNotExist(err) {
+			errDir := os.MkdirAll(root+"report/", 0755)
+			if errDir != nil {
+				panic(err)
+			}
+		}
+		for i, jsonMap := range mappingsList {
+			ioutil.WriteFile(root+"report/"+jsonMap, []byte(loggers[i].String()), 0644)
+		}
+		fmt.Println("Count", errorSum)
 	}
-	fmt.Println("Count", errorSum)
+
 	os.Exit(clamp(errorSum, 0, 255))
 }
