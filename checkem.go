@@ -178,7 +178,7 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 	//stores all non-nested values we have encountered so far
 	mappedFieldvals := map[string]string{}
 
-	necessaryConstants := map[string]bool{"ListPrice": false, "ListingId": false, "ListAgentKey": false, "ListOfficeKey": false, "PublicRemarks": false, "PropertyType": false, "StandardStatus": false}
+	// necessaryConstants := map[string]bool{"ListPrice": false, "ListingId": false, "ListAgentKey": false, "ListOfficeKey": false, "PublicRemarks": false, "PropertyType": false, "StandardStatus": false}
 
 	if mapping != nil {
 		detKeys := sortKeys(mapping)
@@ -186,18 +186,18 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 			switch mapping[key].(type) {
 			case string:
 				mappedVal := mapping[key].(string)
-				_, ex := necessaryConstants[mappedVal]
-				if ex {
-					necessaryConstants[mappedVal] = true
-				}
 				//check if in metadata
-				_, ex = csvList[key]
+				_, ex := csvList[key]
 				if !ex {
 					fmt.Fprintln(log, "	", key+":", "not in metadata")
 					errCount++
 				} else {
 					csvList[key] = true
 				}
+				// _, ex := necessaryConstants[mappedVal]
+				// if ex {
+				// 	necessaryConstants[mappedVal] = true
+				// }
 				if mappedVal == "" {
 					//ignore empty fields
 					continue
@@ -296,15 +296,15 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 			errCount++
 		}
 	}
-	if resource == "property" {
-		// detKeys := sortKeys(necessaryConstants)
-		for key, value := range necessaryConstants {
-			if !value {
-				fmt.Fprintln(log, "	", key+":", "This constant is not mapped!")
-				errCount++
-			}
-		}
-	}
+	// if resource == "property" {
+	// 	// detKeys := sortKeys(necessaryConstants)
+	// 	for key, value := range necessaryConstants {
+	// 		if !value {
+	// 			fmt.Fprintln(log, "	", key+":", "This constant is not mapped!")
+	// 			errCount++
+	// 		}
+	// 	}
+	// }
 
 	fin <- errCount
 	return
