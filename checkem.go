@@ -174,19 +174,24 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 		return
 	}
 
-	//TODO: wrap strings builder, so no need to manually keep track
 	errCount := 0
 	//stores all non-nested values we have encountered so far
 	mappedFieldvals := map[string]string{}
-	//TODO: Read csv metadata
+
+	necessaryConstants := map[string]bool{"ListingContractDate": false, "LotSizeSquareFeet": false, "AssociationFee": false, "AssociationYN": false, "AssociationFeeFrequency": false, "Stories": false, "BedroomsTotal": false, "BathroomsTotalInteger": false, "BathroomsOneQuarter": false, "BathroomsHalf": false, "BathroomsThreeQuarter": false, "BathroomsFull": false, "LivingArea": false, "PropertySubType": false, "YearBuilt": false, "InternetEntireListingDisplayYN": false, "InternetAddressDisplayYN": false, "ListPrice": false, "ListingId": false, "RetrievedPhotosCount": false, "ListAgentKey": false, "ListOfficeKey": false, "PublicRemarks": false, "PropertyType": false, "StandardStatus": false, "GarageYN": false, "WaterfrontYN": false, "PoolPrivateYN": false, "BasementYN": false, "ListAgentStateLicense": false, "CoListAgentStateLicense": false, "ListAOR": false, "OriginalEntryTimestamp": false}
+
 	if mapping != nil {
 		detKeys := sortKeys(mapping)
 		for _, key := range detKeys {
 			switch mapping[key].(type) {
 			case string:
 				mappedVal := mapping[key].(string)
+				_, ex := necessaryConstants[mappedVal]
+				if ex {
+					necessaryConstants[mappedVal] = true
+				}
 				//check if in metadata
-				_, ex := csvList[key]
+				_, ex = csvList[key]
 				if !ex {
 					fmt.Fprintln(log, "	", key+":", "not in metadata")
 					errCount++
@@ -285,13 +290,22 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 	} else {
 		fmt.Fprintln(log, "Mapping is nil!")
 	}
-	//TODO: Check keys missing or key not from metadata
 	for index, csvRec := range csvList {
 		if !csvRec {
 			fmt.Fprintln(log, "	", index+":", "Not found in mappings")
 			errCount++
 		}
 	}
+	if resource == "property" {
+		// detKeys := sortKeys(necessaryConstants)
+		for key, value := range necessaryConstants {
+			if !value {
+				fmt.Fprintln(log, "	", key+":", "This constant is not mapped!")
+				errCount++
+			}
+		}
+	}
+
 	fin <- errCount
 	return
 }
