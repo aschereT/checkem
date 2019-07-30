@@ -178,7 +178,7 @@ func checkRoutine(jsonMap string, fin chan int, log *strings.Builder) {
 	//stores all non-nested values we have encountered so far
 	mappedFieldvals := map[string]string{}
 
-	necessaryConstants := map[string]bool{"ListingContractDate": false, "LotSizeSquareFeet": false, "AssociationFee": false, "AssociationYN": false, "AssociationFeeFrequency": false, "Stories": false, "BedroomsTotal": false, "BathroomsTotalInteger": false, "BathroomsOneQuarter": false, "BathroomsHalf": false, "BathroomsThreeQuarter": false, "BathroomsFull": false, "LivingArea": false, "PropertySubType": false, "YearBuilt": false, "InternetEntireListingDisplayYN": false, "InternetAddressDisplayYN": false, "ListPrice": false, "ListingId": false, "ListAgentKey": false, "ListOfficeKey": false, "PublicRemarks": false, "PropertyType": false, "StandardStatus": false, "GarageYN": false, "WaterfrontYN": false, "PoolPrivateYN": false, "BasementYN": false, "ListAgentStateLicense": false, "CoListAgentStateLicense": false, "ListAOR": false, "OriginalEntryTimestamp": false}
+	necessaryConstants := map[string]bool{"ListPrice": false, "ListingId": false, "ListAgentKey": false, "ListOfficeKey": false, "PublicRemarks": false, "PropertyType": false, "StandardStatus": false}
 
 	if mapping != nil {
 		detKeys := sortKeys(mapping)
